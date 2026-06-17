@@ -11,6 +11,7 @@ from .serializers import (
     StockSerializer, StockDetailSerializer,
     MarketIndexDailySerializer, DailyMarketWeatherSerializer,
 )
+from .index_collector import TARGET_INDICES
 
 # Create your views here.
 @api_view(['GET'])
@@ -106,9 +107,9 @@ def stock_detail(request, stock_code):
 
 @api_view(['GET'])
 def market_indices(request):
-    """홈 대시보드용 — 코스피·코스닥의 최신 지수를 반환한다."""
+    """홈 대시보드용 — 대상 시장지수(코스피·코스닥·코스피200·KRX300)의 최신값을 반환한다."""
     indices = []
-    for index_name in ('코스피', '코스닥'):
+    for index_name in TARGET_INDICES:
         latest = MarketIndexDaily.objects.filter(index_name=index_name).first()
         if latest:
             indices.append(latest)

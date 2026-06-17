@@ -1,11 +1,13 @@
-"""코스피·코스닥 등락률로 '투자 날씨'를 산출한다.
+"""대상 시장지수들의 등락률 평균으로 '투자 날씨'를 산출한다.
 
 상승일수록 긍정(맑음), 하락일수록 부정(폭풍). 임계값은 아래 상수로 조정 가능.
+대상 지수는 index_collector.TARGET_INDICES(코스피·코스닥·코스피200·KRX300).
 """
 
 from django.utils import timezone
 
 from .models import MarketIndexDaily, DailyMarketWeather
+from .index_collector import TARGET_INDICES
 
 # combined(코스피·코스닥 평균 등락률, %) 구간별 (상태, 메시지).
 # 큰 값(상승)부터 검사한다.
@@ -19,39 +21,50 @@ WEATHER_THRESHOLDS = [
 WEATHER_FALLBACK = (DailyMarketWeather.WeatherStatus.STORMY, "큰 하락 — 변동성 경계가 필요합니다.")
 
 
-def compute_weather(kospi_rate, kosdaq_rate):
-	"""코스피·코스닥 등락률(%)로 (status, message, indicator_data)를 산출한다."""
-	combined = (kospi_rate + kosdaq_rate) / 2
-
-	status, message = WEATHER_FALLBACK
+def classify_weather(combined_rate):
+	"""평균 등락률(%)을 5단계 (status, message)로 분류한다."""
 	for lower_bound, bound_status, bound_message in WEATHER_THRESHOLDS:
-		if combined >= lower_bound:
-			status, message = bound_status, bound_message
-			break
+		if combined_rate >= lower_bound:
+			return bound_status, bound_message
+	return WEATHER_FALLBACK
+
+
+def compute_weather(index_rates):
+	"""지수별 등락률(%) dict로 (status, message, indicator_data)를 산출한다.
+
+	index_rates: dict[지수명 -> 등락률(float)]. 등락률 평균으로 날씨를 판단한다.
+	"""
+	rates = list(index_rates.values())
+	combined = sum(rates) / len(rates) if rates else 0.0
+	status, message = classify_weather(combined)
 
 	indicator_data = {
 		"combined_rate": round(combined, 2),
-		"kospi": {"change_rate": kospi_rate},
-		"kosdaq": {"change_rate": kosdaq_rate},
+		"indices": {name: {"change_rate": rate} for name, rate in index_rates.items()},
 	}
 	return status, message, indicator_data
 
 
 def store_today_weather():
-	"""최신 코스피·코스닥 지수를 읽어 오늘자 DailyMarketWeather를 산출·저장한다.
+	"""대상 지수들의 최신값을 읽어 오늘자 DailyMarketWeather를 산출·저장한다.
 
-	반환: 저장된 DailyMarketWeather 인스턴스. 지수 데이터가 없으면 None.
+	반환: 저장된 DailyMarketWeather 인스턴스. 지수 데이터가 하나도 없으면 None.
 	"""
-	kospi = MarketIndexDaily.objects.filter(index_name="코스피").first()
-	kosdaq = MarketIndexDaily.objects.filter(index_name="코스닥").first()
-	if not kospi or not kosdaq:
+	latest = {}
+	for index_name in TARGET_INDICES:
+		obj = MarketIndexDaily.objects.filter(index_name=index_name).first()
+		if obj:
+			latest[index_name] = obj
+	if not latest:
 		return None
 
-	status, message, indicator_data = compute_weather(kospi.change_rate, kosdaq.change_rate)
-	indicator_data["kospi"]["close_price"] = kospi.close_price
-	indicator_data["kosdaq"]["close_price"] = kosdaq.close_price
+	index_rates = {name: obj.change_rate for name, obj in latest.items()}
+	status, message, indicator_data = compute_weather(index_rates)
+	# 등락률 외에 종가도 함께 보관
+	for name, obj in latest.items():
+		indicator_data["indices"][name]["close_price"] = obj.close_price
 
-	obj, _ = DailyMarketWeather.objects.update_or_create(
+	weather, _ = DailyMarketWeather.objects.update_or_create(
 		target_date=timezone.localdate(),
 		defaults={
 			"weather_status": status,
@@ -59,4 +72,4 @@ def store_today_weather():
 			"indicator_data": indicator_data,
 		},
 	)
-	return obj
+	return weather
