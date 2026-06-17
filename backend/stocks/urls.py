@@ -6,6 +6,8 @@ app_name = 'stocks'
 urlpatterns = [
     path('save/', views.save_stocks, name='save_stocks'),
     path('', views.stock_list_create, name='stock_list_create'),
+    path('indices/', views.market_indices, name='market_indices'),
+    path('weather/today/', views.market_weather_today, name='market_weather_today'),
     path('top-performer/', views.top_performer, name='top_performer'),
     path('<str:stock_code>/', views.stock_detail, name='stock_detail'),
 ]

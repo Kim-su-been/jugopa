@@ -6,8 +6,11 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
-from .models import Stock, StockPriceDaily
-from .serializers import StockSerializer, StockDetailSerializer
+from .models import Stock, StockPriceDaily, MarketIndexDaily, DailyMarketWeather
+from .serializers import (
+    StockSerializer, StockDetailSerializer,
+    MarketIndexDailySerializer, DailyMarketWeatherSerializer,
+)
 
 # Create your views here.
 @api_view(['GET'])
@@ -100,6 +103,31 @@ def stock_detail(request, stock_code):
     stock = get_object_or_404(Stock, stock_code=stock_code)
     serializer = StockDetailSerializer(stock)
     return Response(serializer.data)
+
+@api_view(['GET'])
+def market_indices(request):
+    """홈 대시보드용 — 코스피·코스닥의 최신 지수를 반환한다."""
+    indices = []
+    for index_name in ('코스피', '코스닥'):
+        latest = MarketIndexDaily.objects.filter(index_name=index_name).first()
+        if latest:
+            indices.append(latest)
+    serializer = MarketIndexDailySerializer(indices, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def market_weather_today(request):
+    """홈 대시보드용 — 오늘자 투자 날씨(없으면 최신 1건)를 반환한다."""
+    today = datetime.now().date()
+    weather = DailyMarketWeather.objects.filter(target_date=today).first()
+    if not weather:
+        weather = DailyMarketWeather.objects.order_by('-target_date').first()
+    if not weather:
+        return Response({"detail": "산출된 투자 날씨가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+    serializer = DailyMarketWeatherSerializer(weather)
+    return Response(serializer.data)
+
 
 @api_view(['GET'])
 def top_performer(request):

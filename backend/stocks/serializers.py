@@ -1,5 +1,10 @@
 from rest_framework import serializers
-from .models import Stock, StockPriceDaily, DailyMarketWeather
+from .models import Stock, StockPriceDaily, DailyMarketWeather, MarketIndexDaily
+
+class MarketIndexDailySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MarketIndexDaily
+        fields = ['index_name', 'base_date', 'close_price', 'change', 'change_rate']
 
 class DailyMarketWeatherSerializer(serializers.ModelSerializer):
     weather_emoji = serializers.SerializerMethodField()
