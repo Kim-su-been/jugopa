@@ -2,8 +2,15 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.utils import timezone
 
-from .models import SectorCardNews
-from .serializers import SectorCardNewsSerializer
+from .models import SectorCardNews, Sector
+from .serializers import SectorCardNewsSerializer, SectorSerializer
+
+
+@api_view(['GET'])
+def sectors_list(request):
+	"""관심 업종 선택 그리드용 — 활성 섹터(업종) 목록을 반환한다."""
+	sectors = Sector.objects.filter(is_active=True).order_by('display_order', 'name')
+	return Response(SectorSerializer(sectors, many=True).data)
 
 
 @api_view(['GET'])

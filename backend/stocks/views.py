@@ -4,12 +4,14 @@ from django.shortcuts import get_object_or_404
 from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
-from .models import Stock, StockPriceDaily, MarketIndexDaily, DailyMarketWeather
+from .models import Stock, StockPriceDaily, MarketIndexDaily, DailyMarketWeather, UserBookmark
 from .serializers import (
     StockSerializer, StockDetailSerializer,
     MarketIndexDailySerializer, DailyMarketWeatherSerializer,
+    UserBookmarkSerializer,
 )
 from .index_collector import TARGET_INDICES
 
@@ -104,6 +106,31 @@ def stock_detail(request, stock_code):
     stock = get_object_or_404(Stock, stock_code=stock_code)
     serializer = StockDetailSerializer(stock)
     return Response(serializer.data)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def bookmarks(request):
+    """관심 종목 — GET: 내 목록 조회 / POST: 추가(body: stock_code)."""
+    if request.method == 'GET':
+        qs = UserBookmark.objects.filter(user=request.user).select_related('stock').order_by('-created_at')
+        return Response(UserBookmarkSerializer(qs, many=True).data)
+
+    stock_code = request.data.get('stock_code')
+    stock = get_object_or_404(Stock, stock_code=stock_code)
+    bookmark, created = UserBookmark.objects.get_or_create(user=request.user, stock=stock)
+    serializer = UserBookmarkSerializer(bookmark)
+    return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def bookmark_delete(request, stock_code):
+    """관심 종목 해제."""
+    deleted, _ = UserBookmark.objects.filter(user=request.user, stock__stock_code=stock_code).delete()
+    if not deleted:
+        return Response({"detail": "관심 종목에 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 @api_view(['GET'])
 def market_indices(request):

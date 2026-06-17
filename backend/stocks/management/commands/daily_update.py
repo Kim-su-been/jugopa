@@ -37,8 +37,15 @@ class Command(BaseCommand):
 		# 3. 뉴스 섹터 카드뉴스 갱신 (기존 파이프라인)
 		try:
 			call_command('crawl_news')
-			self.stdout.write(self.style.SUCCESS("[3/3] 뉴스 섹터 갱신 완료"))
+			self.stdout.write(self.style.SUCCESS("[3/4] 뉴스 섹터 갱신 완료"))
 		except Exception as exc:
-			self.stdout.write(self.style.ERROR(f"[3/3] 뉴스 섹터 갱신 실패: {exc}"))
+			self.stdout.write(self.style.ERROR(f"[3/4] 뉴스 섹터 갱신 실패: {exc}"))
+
+		# 4. 섹터별 대표 종목 조회·매핑 갱신 (API로 종목 확보)
+		try:
+			call_command('load_sector_stocks')
+			self.stdout.write(self.style.SUCCESS("[4/4] 섹터 대표 종목 매핑 갱신 완료"))
+		except Exception as exc:
+			self.stdout.write(self.style.ERROR(f"[4/4] 섹터 대표 종목 매핑 갱신 실패: {exc}"))
 
 		self.stdout.write(self.style.SUCCESS("daily_update 완료."))
