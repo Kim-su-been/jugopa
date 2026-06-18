@@ -14,6 +14,7 @@ from .serializers import (
     UserBookmarkSerializer,
 )
 from .index_collector import TARGET_INDICES
+from .stock_fetcher import fetch_stock_by_name
 
 # Create your views here.
 @api_view(['GET'])
@@ -100,6 +101,22 @@ def stock_list_create(request):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+def stock_search(request):
+    """종목명으로 검색 — 로컬 DB 우선, 없으면 공공API(likeItmsNm) 폴백 적재 후 반환한다."""
+    query = (request.query_params.get('q') or '').strip()
+    if not query:
+        return Response([])
+
+    matches = Stock.objects.filter(stock_name__icontains=query)[:10]
+    if not matches:
+        fetched = fetch_stock_by_name(query)
+        matches = [fetched] if fetched else []
+
+    serializer = StockSerializer(matches, many=True)
+    return Response(serializer.data)
+
 
 @api_view(['GET'])
 def stock_detail(request, stock_code):

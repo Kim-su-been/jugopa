@@ -6,6 +6,7 @@ app_name = 'stocks'
 urlpatterns = [
     path('save/', views.save_stocks, name='save_stocks'),
     path('', views.stock_list_create, name='stock_list_create'),
+    path('search/', views.stock_search, name='stock_search'),
     path('indices/', views.market_indices, name='market_indices'),
     path('weather/today/', views.market_weather_today, name='market_weather_today'),
     path('bookmarks/', views.bookmarks, name='bookmarks'),
