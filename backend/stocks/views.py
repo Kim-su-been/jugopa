@@ -1,5 +1,5 @@
 import requests  # 1. requests 임포트 추가
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from rest_framework import status
@@ -14,7 +14,12 @@ from .serializers import (
     UserBookmarkSerializer,
 )
 from .index_collector import TARGET_INDICES
-from .stock_fetcher import fetch_stock_by_name
+from .stock_fetcher import fetch_price_history, fetch_stock_by_name
+
+# 상세 페이지 시세 그래프 일수 / 신선도 가드 기준
+PRICE_HISTORY_DAYS = 30
+PRICE_FRESHNESS_MIN_COUNT = 20
+PRICE_FRESHNESS_WINDOW_DAYS = 40
 
 # Create your views here.
 @api_view(['GET'])
@@ -121,7 +126,14 @@ def stock_search(request):
 @api_view(['GET'])
 def stock_detail(request, stock_code):
     stock = get_object_or_404(Stock, stock_code=stock_code)
-    serializer = StockDetailSerializer(stock)
+
+    # 신선도 가드: 최근 윈도우 내 시세가 부족하면 공공API로 30일치 백필(첫 로드만 외부호출).
+    window_start = datetime.now().date() - timedelta(days=PRICE_FRESHNESS_WINDOW_DAYS)
+    recent_count = stock.daily_prices.filter(record_date__gte=window_start).count()
+    if recent_count < PRICE_FRESHNESS_MIN_COUNT:
+        fetch_price_history(stock_code, PRICE_HISTORY_DAYS)
+
+    serializer = StockDetailSerializer(stock, context={'price_limit': PRICE_HISTORY_DAYS})
     return Response(serializer.data)
 
 @api_view(['GET', 'POST'])
