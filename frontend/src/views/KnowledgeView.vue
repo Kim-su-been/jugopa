@@ -4,6 +4,7 @@ import { tutorsApi } from '@/api/tutors'
 import BaseButton from '@/components/common/BaseButton.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import bgQuiz from '@/assets/backgrounds/quiz.png'
 
 const term = ref(null)
 const loading = ref(true)
@@ -21,7 +22,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="page knowledge">
+  <div class="page knowledge theme-light">
+    <div class="weather-bg" :style="{ backgroundImage: `url(${bgQuiz})`, filter: 'blur(4px)', transform: 'scale(1.02)' }"></div>
+    <RouterLink :to="{ name: 'home' }" class="nav-arrow right" aria-label="메인 페이지">›</RouterLink>
     <span class="eyebrow">오늘의 경제 용어</span>
 
     <div v-if="loading" class="card">
@@ -46,6 +49,9 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.page.knowledge {
+  min-height: 100vh;
+}
 .eyebrow {
   display: inline-block;
   padding: 6px 12px;
