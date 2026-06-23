@@ -50,6 +50,10 @@ const routes = [
   },
   { path: '/signup', name: 'signup', component: () => import('@/views/SignupView.vue'), meta: { guestOnly: true } },
   { path: '/landing', name: 'landing', component: () => import('@/views/LandingView.vue') },
+  { path: '/terms', name: 'terms', component: () => import('@/views/TermsView.vue') },
+  { path: '/privacy', name: 'privacy', component: () => import('@/views/PrivacyView.vue') },
+  { path: '/credits', name: 'credits', component: () => import('@/views/CreditsView.vue') },
+  { path: '/disclaimer', name: 'disclaimer', component: () => import('@/views/DisclaimerView.vue') },
 ]
 
 const router = createRouter({
