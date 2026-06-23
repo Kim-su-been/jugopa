@@ -1,5 +1,6 @@
 <script setup>
 import AppHeader from './AppHeader.vue'
+import AppFooter from './AppFooter.vue'
 import BottomTabBar from './BottomTabBar.vue'
 </script>
 
@@ -9,6 +10,7 @@ import BottomTabBar from './BottomTabBar.vue'
     <main class="layout-main">
       <slot />
     </main>
+    <AppFooter />
     <BottomTabBar />
   </div>
 </template>
