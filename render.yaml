@@ -18,7 +18,9 @@ services:
     plan: free
     rootDir: backend
     # free 플랜은 preDeployCommand 미지원 → migrate 를 buildCommand 에 포함
-    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    # loaddata 로 시드 적재 (Shell 미지원 우회). 이미 적재돼 있어도 fixture pk 고정이라 덮어씀.
+    # 시드 실패가 배포 전체를 막지 않도록 '|| true' 로 감싼다.
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && (python manage.py loaddata fixtures/seed_data.json || true)"
     # Render 가 주입하는 $PORT 에 바인딩해야 "No open ports detected" 가 안 남
     startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
     # healthCheckPath 는 제거: /api/v1/ 루트엔 라우트가 없고(404), 하위 경로는 인증을 요구할 수 있어
